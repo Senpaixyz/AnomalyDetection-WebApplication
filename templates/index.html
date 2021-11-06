@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AOTAD</title>
+    <link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='css/bootstrap.min.css') }}">
+    <link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='css/Chart.min.css') }}">
+     <link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='css/index.css') }}">
+    <title>Creating Real-Time Charts with Flask</title>
+<!--    <link href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet">-->
+<!--    <link href="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.min.css" rel="stylesheet">-->
+</head>
+<body>
+<nav class="navbar navbar-dark text-light bg-dark">
+  <a class="navbar-brand" href="#">
+    <img src="/docs/4.0/assets/brand/bootstrap-solid.svg" width="30" height="30" class="d-inline-block align-top" alt="">
+    AOT Anomaly Detection
+  </a>
+</nav>
+<div class="container-fluid">
+<!--    <div class="alert alert-danger mt-3" role="alert">-->
+<!--      AOT Anomaly Detected to {deviceID} message was sent to {deviceContactNo}.-->
+<!--    </div>-->
+    <div class="row">
+        <div class="col-md-3 col-sm-12 col-xs-12 mt-3">
+            <div class="row mt-5">
+                <div class="col-md-12">
+                    <h5 class="display-5 text-center text-warning">REALTIME AOT ANOMALY PERCENTAGE</h5>
+                </div>
+                <div class="col-md-12 mt-3">
+                    <div id="left-bar" style="margin:0 auto;"></div>
+                </div>
+                <div class="col-md-12 mt-5 ">
+                    <hr>
+                   <div class="row text-center">
+                       <div class="col-md-6 col-sm-3 col-xs-3"><b class="text-secondary">0 - 50</b></div>
+                        <div class="col-md-6 col-sm-3 col-xs-3"><small class="text-secondary">Normal Traffic</small></div>
+                       <div class="col-md-6 col-sm-3 col-xs-3"><b class="text-secondary">50 - 100</b></div>
+                        <div class="col-md-6 col-sm-3 col-xs-3"><small class="text-secondary">DDOS Attack</small></div>
+                   </div>
+                </div>
+                <div class="col-md-12 mt-3">
+                    <small><b style="font-family:Arial;">DDOS Severity Indicator</b></small>
+                    <div class="row mt-3">
+                        <div class="col-md-12 col-sm-12 col-xs-12">
+                             <div class="d-flex justify-content-around text-center">
+                                 <div class="p-2"><small>Low</small></div>
+                                 <div class="p-2"><small>Moderate</small></div>
+                                 <div class="p-2"><small>High</small></div>
+                             </div>
+                        </div>
+                    </div>
+                    <div id="severity" style="margin:0 auto;" class="mt-2 mb-4"></div>
+                    <hr>
+                </div>
+            </div>
+
+        </div>
+        <div class="col-md-9 col-sm-12 col-xs-12 mt-5">
+            <div class="row">
+                <div class="col-md-12 col-sm-12 col-xs-12">
+                    <h5 class="display-4 ml-md-5 mb-3" style="font-size:25px;">Realtime AOT Network Traffic Monitoring</h5>
+                </div>
+                <div class="col-md-12 col-sm-12 col-xs-12">
+                    <div class="canvas-parent">
+                        <canvas id="canvas"></canvas>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+</div>
+    <footer class="py-3 bg-dark">
+        <div class="container">
+           <p class="text-center text-light mt-3">Copyright &copy; 2021 AOT</p>
+        </div>
+    </footer>
+<script src="{{ url_for('static',filename='js/popper.min.js') }}"></script>
+<script src="{{ url_for('static',filename='js/jquery.min.js') }}"></script>
+<script src="{{ url_for('static',filename='js/bootstrap.min.js') }}"></script>
+<script src="{{ url_for('static',filename='js/Chart.min.js') }}"></script>
+<script src="{{ url_for('static',filename='js/progressbar.min.js') }}"></script>
+<script src="{{ url_for('static',filename='js/progressbar.js') }}"></script>
+<script>
+    let container = document.querySelector('#left-bar');
+    let severity = document.querySelector('#severity');
+    $(document).ready(function () {
+        var severity_graph = new ProgressBar.Line(severity, {
+            from: { color: '#FFBF00'},
+            to: { color: '#D2222D'},
+            step: function(state, bar, attachment) {
+                bar.path.setAttribute('stroke', state.color);
+            }
+        });
+
+        // Method for progress js
+        var bar = new ProgressBar.SemiCircle(container, {
+          strokeWidth: 10,
+          color: '#FFEA82',
+          trailColor: '#eee',
+          trailWidth: 2,
+          easing: 'easeInOut',
+          duration: 1500,
+          svgStyle: null,
+          text: {
+            value: '',
+            alignToBottom: false
+          },
+          from: {color: '#FFEA82'},
+          to: {color: '#ED6A5A'},
+          // Set default step function for all animate calls
+          step: (state, bar) => {
+            bar.path.setAttribute('stroke', state.color);
+            var value = Math.round(bar.value() * 100);
+
+            if (value === 0) {
+              var val_zero = '0%';
+              bar.setText(val_zero);
+            } else {
+              var val_percentage = String(value) + '%';
+              bar.setText(val_percentage);
+            }
+
+            bar.text.style.color = state.color;
+          }
+        });
+        bar.text.style.fontFamily = '"Raleway", Helvetica, sans-serif';
+        bar.text.style.fontSize = '2rem';
+
+        // Method for graph js
+        const config = {
+            data: {
+                labels: [],
+                datasets: [
+                {
+                    type: 'line',
+                    label: "Packet Average Length",
+                    backgroundColor: 'rgb(255, 99, 132)',
+                    borderColor: 'rgb(255, 99, 132)',
+                    data: [],
+                    fill: false,
+                },
+                {
+                    type: 'line',
+                    label: "Average Payload Length",
+                    backgroundColor: 'rgb(23, 39, 116)',
+                    borderColor: 'rgb(23, 39, 116)',
+                    data: [],
+                    fill: false,
+                },
+                {
+                    type: 'bar',
+                    label: "Flow Average Interval",
+                    backgroundColor: 'rgb(248, 223, 139)',
+                    borderColor: 'rgb(248, 223, 139)',
+                    data: [],
+                    fill: false,
+                },
+                ],
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                tooltips: {
+                    mode: 'index',
+                    intersect: false,
+                },
+                hover: {
+                    mode: 'nearest',
+                    intersect: true
+                },
+                scales: {
+                    xAxes: [{
+                        display: true,
+                        scaleLabel: {
+                            display: true,
+                            labelString: 'DateTime'
+                        },
+                         ticks: {
+                            beginAtZero:true
+                        }
+                    }],
+                    yAxes: [{
+                        display: true,
+                        scaleLabel: {
+                            display: true,
+                            labelString: 'Buffered Average'
+                        },
+                         ticks: {
+                            beginAtZero:true
+                        }
+                    }]
+                }
+            }
+        };
+
+        const context = document.getElementById('canvas').getContext('2d');
+
+        const lineChart = new Chart(context, config);
+
+        const source = new EventSource("/chart-data");
+
+        source.onmessage = function (event) {
+            const data = JSON.parse(event.data);
+            if (config.data.labels.length === 20) {
+                config.data.labels.shift();
+                config.data.datasets[0].data.shift();
+                config.data.datasets[1].data.shift();
+                config.data.datasets[2].data.shift();
+            }
+            config.data.labels.push(data.time);
+            config.data.datasets[0].data.push(data.packet_length);
+            config.data.datasets[1].data.push(data.payload_length);
+            config.data.datasets[2].data.push(data.packet_count);
+            bar.animate(data.anomaly_rate);
+            severity_graph.animate(data.severity_rate)
+            lineChart.update();
+        }
+    });
+</script>
+
+</body>
+</html>
