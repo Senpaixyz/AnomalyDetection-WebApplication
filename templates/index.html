@@ -13,16 +13,18 @@
 <!--    <link href="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.min.css" rel="stylesheet">-->
 </head>
 <body>
+  <!--Toast-->
+
 <nav class="navbar navbar-dark text-light bg-dark">
   <a class="navbar-brand" href="#">
     <img src="/docs/4.0/assets/brand/bootstrap-solid.svg" width="30" height="30" class="d-inline-block align-top" alt="">
     AOT Anomaly Detection
   </a>
 </nav>
-<div class="container-fluid">
-<!--    <div class="alert alert-danger mt-3" role="alert">-->
-<!--      AOT Anomaly Detected to {deviceID} message was sent to {deviceContactNo}.-->
-<!--    </div>-->
+
+<div class="container-fluid" aria-live="polite" aria-atomic="true" style="position: relative; min-height: 200px;">
+    <div class="toast-container">
+    </div>
     <div class="row">
         <div class="col-md-3 col-sm-12 col-xs-12 mt-3">
             <div class="row mt-5">
@@ -35,9 +37,9 @@
                 <div class="col-md-12 mt-5 ">
                     <hr>
                    <div class="row text-center">
-                       <div class="col-md-6 col-sm-3 col-xs-3"><b class="text-secondary">0 - 50</b></div>
+                       <div class="col-md-6 col-sm-3 col-xs-3"><b class="text-secondary">0 - 45</b></div>
                         <div class="col-md-6 col-sm-3 col-xs-3"><small class="text-secondary">Normal Traffic</small></div>
-                       <div class="col-md-6 col-sm-3 col-xs-3"><b class="text-secondary">50 - 100</b></div>
+                       <div class="col-md-6 col-sm-3 col-xs-3"><b class="text-secondary">46 - 100</b></div>
                         <div class="col-md-6 col-sm-3 col-xs-3"><small class="text-secondary">DDOS Attack</small></div>
                    </div>
                 </div>
@@ -73,6 +75,7 @@
         </div>
 
     </div>
+
 </div>
     <footer class="py-3 bg-dark">
         <div class="container">
@@ -85,10 +88,13 @@
 <script src="{{ url_for('static',filename='js/Chart.min.js') }}"></script>
 <script src="{{ url_for('static',filename='js/progressbar.min.js') }}"></script>
 <script src="{{ url_for('static',filename='js/progressbar.js') }}"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
     let container = document.querySelector('#left-bar');
     let severity = document.querySelector('#severity');
     $(document).ready(function () {
+
+        // Severity rate
         var severity_graph = new ProgressBar.Line(severity, {
             from: { color: '#FFBF00'},
             to: { color: '#D2222D'},
@@ -217,10 +223,70 @@
             config.data.datasets[1].data.push(data.payload_length);
             config.data.datasets[2].data.push(data.packet_count);
             bar.animate(data.anomaly_rate);
+            console.log("DATA: ", data.severity_state)
+            toast_severity(data.severity_state)
             severity_graph.animate(data.severity_rate)
             lineChart.update();
         }
     });
+    function toast_severity(severity){
+            data = {}
+            console.log(severity.length)
+
+            if (severity.length > 0){
+
+                if(severity[0] == "Normal"){
+                     data = {
+                        "header": "Normal Traffic",
+                        "background": "bg-success",
+                        "message": "Theres no attack encountered so far, IOT devices network working..."
+                     };
+                    //$('#toast').toast('show')
+                 }
+                 else if(severity[0] == "Low"){
+                    data = {
+                        "header": "Low Severity",
+                        "background": "bg-primary",
+                        "message": "Theres abnormalities in network traffic, IOT devices network still working..."
+                     };
+                 }
+                 else if(severity[0] == "Moderate"){
+                    data = {
+                        "header": "Moderate Severity",
+                        "background": "bg-warning",
+                        "message": "Traffic isn't normal, sending warning message to +63948116005."
+                     };
+                 }
+                 else if(severity[0] == "High"){
+                    data = {
+                        "header": "High Severity",
+                        "background": "bg-danger",
+                        "message": "System is under attacked, sending warning message to +63948116005."
+                     };
+                 }
+                 let toast_html = `
+                            <div class="toast fade show" id="toast" style="position: absolute; top: 10px; right: 5px; z-index:1">
+                                <div class="toast-header ` + data['background'] + ` px-2 py-2">
+                                      <strong class="mr-auto text-light">`+data['header']+`</strong>
+                                </div>
+
+                                <div class="toast-body px-2 py-2 bg-light">
+                                    <small>`+data['message']+`</small>
+                                    <br>
+                                    <small class="text-secondary">`+severity[1]+`</small>
+                                </div>
+                            </div>
+                    `;
+                 document.querySelector('.toast-container').innerHTML = toast_html;
+
+                 $("#toast").toast({
+                    delay: 10000
+                 });
+                 $("#toast").toast("show");
+            }
+
+        //$('#toast').toast('show')
+    }
 </script>
 
 </body>

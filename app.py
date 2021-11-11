@@ -9,9 +9,11 @@ from datetime import datetime
 from flask import Flask, Response, render_template
 from flask_ngrok import run_with_ngrok
 from library.FlowRecoder import get_data, gen_json
+from library.sms_api import SMS
 
 application = Flask(__name__)
-
+moderate_severity = SMS("Moderate Severity", 20)
+high_severity = SMS("High Severity", 10)
 
 # run_with_ngrok(application)
 
@@ -32,12 +34,15 @@ def chart_data():
         severity_lists = []
         current_percentage = 0.0
         severity_percentage = 0.0
+        severity_percentage_length = 3
         while True:
             captured_buffer = []
+            severity_status = []
             for pkt in sniff(iface=conf.iface, count=2):
                 captured_buffer.append(pkt)
             data = get_data(captured_buffer)
             data = gen_json(data)
+            print("DATA: ", data)
             if len(data) <= 0:
                 data = [[0, 0, 0]]
                 print("NO PACKET TO TRACE ", data)
@@ -49,12 +54,12 @@ def chart_data():
                                                                 )
                 if threshold == check_interval-1:
                     try:
-                        print("Checking interval")
                         current_percentage = round(anomalyBytes / arrayBytesInstances, 1)
-                        if len(severity_lists) > 3-1:
+                        if len(severity_lists) > severity_percentage_length-1:
                             severity_lists.pop(0)
                         severity_lists.append(current_percentage)
-                        severity_percentage = round(sum(severity_lists)/3, 1)
+                        severity_percentage = round(sum(severity_lists)/severity_percentage_length, 1)
+                        severity_status = check_severity_status(severity_percentage)
                         anomalyBytes = 0
                         arrayBytesInstances = 0
                         threshold = 0
@@ -81,12 +86,48 @@ def chart_data():
                         'payload_length': average_payload,
                         'packet_count': pkt_count,
                         'anomaly_rate': current_percentage,
-                        'severity_rate': severity_percentage
+                        'severity_rate': severity_percentage,
+                        'severity_state': severity_status,
                     })
+
                 yield f"data:{json_data}\n\n"
-                time.sleep(0.5)
+                time.sleep(0.2)
 
     return Response(_run(), mimetype='text/event-stream')
+
+
+def check_severity_status(severity_level):
+    """
+        :severity_level: level of severity base on the packets flows
+        : if severity level >= 45 and <= to 50 it must be a moderate
+        : if severity level >= 51 and <= to 100 it must be a high
+    """
+    severity_level = int(severity_level)
+    if 51 <= severity_level <= 100:
+        moderate_severity.reset_interval()
+        if not high_severity.has_sent():
+            high_severity.send_sms()
+        severity_state = "High"
+        tmp = "Next SMS will be Send:{0}".format(high_severity.nxtSent)
+        return [severity_state, tmp]
+    elif 45 <= severity_level <= 50:
+        high_severity.reset_interval()
+        if not moderate_severity.has_sent():
+            moderate_severity.send_sms()
+        severity_state = "Moderate"
+        tmp = "Next SMS will be Send:{0}".format(moderate_severity.nxtSent)
+        return [severity_state, tmp]
+    elif 10 <= severity_level <= 44:
+        severity_state = "Low"
+        tmp = ""
+        return [severity_state, tmp]
+    elif 0 <= severity_level <= 9:
+        severity_state = "Normal"
+        print("SEVERITY: ", severity_state)
+        high_severity.reset_interval()
+        moderate_severity.reset_interval()
+        tmp = ""
+        return [severity_state, tmp]
 
 
 def predict_bytes(packets,anomalyBytes, arrayBytesInstances):
@@ -94,6 +135,7 @@ def predict_bytes(packets,anomalyBytes, arrayBytesInstances):
     try:
         # unique = np.unique(data,axis=0)
         unique = np.unique(data, axis=0)
+        print("DATA: ", data)
         #print("UNIQUE: ", unique)
         if len(unique) <= 2:
             anomalyBytes += 1
