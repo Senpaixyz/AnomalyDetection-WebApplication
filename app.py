@@ -1,5 +1,4 @@
 import json
-import random
 import time
 import numpy as np
 import pandas as pd
@@ -10,12 +9,27 @@ from flask import Flask, Response, render_template
 from flask_ngrok import run_with_ngrok
 from library.FlowRecoder import get_data, gen_json
 from library.sms_api import SMS
+from dotenv import load_dotenv
 
+"""
+    - Load the environment variables first
+"""
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+dotenv_path = os.path.join(BASE_DIR, '.env')
+if not os.path.exists(dotenv_path):
+    raise Exception("ENV FILE NOT FOUND")
+    sys.exit(1)
+else:
+    load_dotenv(dotenv_path)
+"""
+    - Load our instance of our application and severity rates
+"""
 application = Flask(__name__)
-moderate_severity = SMS("Moderate Severity", 20)
-high_severity = SMS("High Severity", 10)
+moderate_severity = SMS("Moderate", int(os.environ.get('HIGH_SEVERITY_INTERVAL')))
+high_severity = SMS("High", int(os.environ.get('MODERATE_SEVERITY_INTERVAL')))
 
-# run_with_ngrok(application)
+
+# run_with_ngrok(application) # for remote monitoring
 
 
 @application.route('/')
@@ -23,18 +37,20 @@ def index():
     return render_template('index.html')
 
 
-@application.route('/chart-data')
-def chart_data():
+@application.route('/fetch_data')
+def fetch_data():
     def _run():
         to_predict_buffer = []
         anomalyBytes = 0
         arrayBytesInstances = 0
         threshold = 0
-        check_interval = 4
         severity_lists = []
         current_percentage = 0.0
         severity_percentage = 0.0
-        severity_percentage_length = 3
+        buffer_length = int(os.environ.get('BUFFER_LENGTH'))
+        check_interval = int(os.environ.get('CHECK_INTERVAL'))
+        severity_percentage_length = float(os.environ.get('SEVERITY_PERCENTAGE_LENGTH'))
+        sleep_interval = float(os.environ.get('SLEEP_INTERVAL'))
         while True:
             captured_buffer = []
             severity_status = []
@@ -42,23 +58,22 @@ def chart_data():
                 captured_buffer.append(pkt)
             data = get_data(captured_buffer)
             data = gen_json(data)
-            print("DATA: ", data)
+            #print("DATA: ", data)
             if len(data) <= 0:
                 data = [[0, 0, 0]]
-                print("NO PACKET TO TRACE ", data)
-            if len(to_predict_buffer) > 20:
+            if len(to_predict_buffer) > buffer_length:
                 anomalyBytes, arrayBytesInstances = predict_bytes(
-                                                                    to_predict_buffer,
-                                                                    anomalyBytes,
-                                                                    arrayBytesInstances
-                                                                )
-                if threshold == check_interval-1:
+                    to_predict_buffer,
+                    anomalyBytes,
+                    arrayBytesInstances
+                )
+                if threshold == check_interval - 1:
                     try:
                         current_percentage = round(anomalyBytes / arrayBytesInstances, 1)
-                        if len(severity_lists) > severity_percentage_length-1:
+                        if len(severity_lists) > severity_percentage_length - 1:
                             severity_lists.pop(0)
                         severity_lists.append(current_percentage)
-                        severity_percentage = round(sum(severity_lists)/severity_percentage_length, 1)
+                        severity_percentage = round(sum(severity_lists) / severity_percentage_length, 1)
                         severity_status = check_severity_status(severity_percentage)
                         anomalyBytes = 0
                         arrayBytesInstances = 0
@@ -91,10 +106,9 @@ def chart_data():
                     })
 
                 yield f"data:{json_data}\n\n"
-                time.sleep(0.2)
+                time.sleep(sleep_interval)
 
     return Response(_run(), mimetype='text/event-stream')
-
 
 def check_severity_status(severity_level):
     """
@@ -103,40 +117,42 @@ def check_severity_status(severity_level):
         : if severity level >= 51 and <= to 100 it must be a high
     """
     severity_level = int(severity_level)
-    if 51 <= severity_level <= 100:
+    if 0.51 <= severity_level <= 1.0:
         moderate_severity.reset_interval()
+        high_severity.check_status()
         if not high_severity.has_sent():
             high_severity.send_sms()
         severity_state = "High"
         tmp = "Next SMS will be Send:{0}".format(high_severity.nxtSent)
         return [severity_state, tmp]
-    elif 45 <= severity_level <= 50:
+    elif 0.45 <= severity_level <= 0.50:
         high_severity.reset_interval()
+        moderate_severity.check_status()
         if not moderate_severity.has_sent():
             moderate_severity.send_sms()
+
         severity_state = "Moderate"
         tmp = "Next SMS will be Send:{0}".format(moderate_severity.nxtSent)
         return [severity_state, tmp]
-    elif 10 <= severity_level <= 44:
+    elif 0.10 <= severity_level <= 0.44:
         severity_state = "Low"
         tmp = ""
         return [severity_state, tmp]
-    elif 0 <= severity_level <= 9:
+    elif 0 <= severity_level <= 0.09:
         severity_state = "Normal"
-        print("SEVERITY: ", severity_state)
         high_severity.reset_interval()
         moderate_severity.reset_interval()
         tmp = ""
         return [severity_state, tmp]
 
 
-def predict_bytes(packets,anomalyBytes, arrayBytesInstances):
+def predict_bytes(packets, anomalyBytes, arrayBytesInstances):
     data = packets
     try:
         # unique = np.unique(data,axis=0)
         unique = np.unique(data, axis=0)
         print("DATA: ", data)
-        #print("UNIQUE: ", unique)
+        # print("UNIQUE: ", unique)
         if len(unique) <= 2:
             anomalyBytes += 1
         arrayBytesInstances += 1
@@ -147,7 +163,11 @@ def predict_bytes(packets,anomalyBytes, arrayBytesInstances):
 
 
 if __name__ == '__main__':
-    application.run(host='0.0.0.0', port='3000', debug=True)
+    application.run(
+        host=os.environ.get('FLASK_RUN_HOST'),
+        port=os.environ.get('FLASK_RUN_PORT'),
+        debug=os.environ.get('FLASK_DEBUG'),
+    )
     # application.run(debug=True, threaded=True)
     # application.run()
 

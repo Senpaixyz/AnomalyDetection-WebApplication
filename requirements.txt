@@ -5,6 +5,7 @@ colorama==0.4.4
 dataclasses==0.8
 Flask==2.0.2
 flask-ngrok==0.0.25
+gunicorn==20.1.0
 idna==3.3
 importlib-metadata==4.8.1
 itsdangerous==2.0.1
@@ -13,6 +14,7 @@ MarkupSafe==2.0.1
 numpy==1.19.5
 pandas==1.1.5
 python-dateutil==2.8.2
+python-dotenv==0.19.2
 pytz==2021.3
 requests==2.26.0
 scapy==2.4.5
