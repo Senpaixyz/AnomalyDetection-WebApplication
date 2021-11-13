@@ -1,5 +1,6 @@
 import json
 import time
+import envconfig
 import numpy as np
 import pandas as pd
 from scapy.all import *
@@ -9,24 +10,14 @@ from flask import Flask, Response, render_template
 from flask_ngrok import run_with_ngrok
 from library.FlowRecoder import get_data, gen_json
 from library.sms_api import SMS
-from dotenv import load_dotenv
 
-"""
-    - Load the environment variables first
-"""
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-dotenv_path = os.path.join(BASE_DIR, '.env')
-if not os.path.exists(dotenv_path):
-    raise Exception("ENV FILE NOT FOUND")
-    sys.exit(1)
-else:
-    load_dotenv(dotenv_path)
+
 """
     - Load our instance of our application and severity rates
 """
 application = Flask(__name__)
-moderate_severity = SMS("Moderate", int(os.environ.get('HIGH_SEVERITY_INTERVAL')))
-high_severity = SMS("High", int(os.environ.get('MODERATE_SEVERITY_INTERVAL')))
+moderate_severity = SMS("Moderate", envconfig.HIGH_SEVERITY_INTERVAL)
+high_severity = SMS("High", envconfig.MODERATE_SEVERITY_INTERVAL)
 
 
 # run_with_ngrok(application) # for remote monitoring
@@ -47,10 +38,10 @@ def fetch_data():
         severity_lists = []
         current_percentage = 0.0
         severity_percentage = 0.0
-        buffer_length = int(os.environ.get('BUFFER_LENGTH'))
-        check_interval = int(os.environ.get('CHECK_INTERVAL'))
-        severity_percentage_length = float(os.environ.get('SEVERITY_PERCENTAGE_LENGTH'))
-        sleep_interval = float(os.environ.get('SLEEP_INTERVAL'))
+        buffer_length = envconfig.BUFFER_LENGTH
+        check_interval = envconfig.CHECK_INTERVAL
+        severity_percentage_length = envconfig.SEVERITY_PERCENTAGE_LENGTH
+        sleep_interval = envconfig.SLEEP_INTERVAL
         while True:
             captured_buffer = []
             severity_status = []
@@ -164,9 +155,9 @@ def predict_bytes(packets, anomalyBytes, arrayBytesInstances):
 
 if __name__ == '__main__':
     application.run(
-        host=os.environ.get('FLASK_RUN_HOST'),
-        port=os.environ.get('FLASK_RUN_PORT'),
-        debug=os.environ.get('FLASK_DEBUG'),
+        host=envconfig.HOST,
+        port=envconfig.PORT,
+        debug=envconfig.DEBUG,
     )
     # application.run(debug=True, threaded=True)
     # application.run()

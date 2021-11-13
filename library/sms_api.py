@@ -3,24 +3,14 @@ import time
 from dotenv import load_dotenv
 import sys, requests, urllib
 from datetime import datetime
+import envconfig
 
-"""
-    - Load the environment variables first
-"""
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-dotenv_path = os.path.join(BASE_DIR, '.env')
-if not os.path.exists(dotenv_path):
-    raise Exception("ENV FILE NOT FOUND")
-    sys.exit(1)
-else:
-    load_dotenv(dotenv_path)
-
-API_TOKEN = os.environ.get('SMS_API_TOKEN')
-SENDER_NAME = os.environ.get('SMS_SENDER_NAME')
-MOBILE_NO = os.environ.get('MOBILE_NO')
-MODERATE_SEVERITY_SMS = os.environ.get('MODERATE_SEVERITY_SMS')
-HIGH_SEVERITY_SMS = os.environ.get('HIGH_SEVERITY_SMS')
-SMS_DEBUG = os.environ.get('SMS_DEBUG')
+API_TOKEN = envconfig.API_TOKEN
+SENDER_NAME = envconfig.SENDER_NAME
+MOBILE_NO = envconfig.MOBILE_NO
+MODERATE_SEVERITY_SMS = envconfig.MODERATE_SEVERITY_SMS
+HIGH_SEVERITY_SMS = envconfig.HIGH_SEVERITY_SMS
+SMS_DEBUG = envconfig.SMS_DEBUG
 
 class SMS(object):
 
@@ -39,7 +29,7 @@ class SMS(object):
         self.currentTime = time.time()
         #curr_time_str = str(time.ctime(self.currentTime))
         #nxt_time_str = str(time.ctime(self.nxtSent))
-        if float(self.currentTime) >= float(self.nextSent):
+        if float(self.currentTime) >= float(self.nxtSent):
             self.reset_interval()
 
     def has_sent(self):
