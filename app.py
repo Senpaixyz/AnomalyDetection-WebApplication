@@ -2,15 +2,13 @@ import json
 import time
 import envconfig
 import numpy as np
-import pandas as pd
 from scapy.all import *
 from scapy.sendrecv import sniff
 from datetime import datetime
 from flask import Flask, Response, render_template
-from flask_ngrok import run_with_ngrok
 from library.FlowRecoder import get_data, gen_json
 from library.sms_api import SMS
-
+from joblib import load
 
 """
     - Load our instance of our application and severity rates
@@ -42,6 +40,7 @@ def fetch_data():
         check_interval = envconfig.CHECK_INTERVAL
         severity_percentage_length = envconfig.SEVERITY_PERCENTAGE_LENGTH
         sleep_interval = envconfig.SLEEP_INTERVAL
+        m = load_application_model(envconfig.MODEL_PATH)
         while True:
             captured_buffer = []
             severity_status = []
@@ -56,6 +55,7 @@ def fetch_data():
                 anomalyBytes, arrayBytesInstances = predict_bytes(
                     to_predict_buffer,
                     anomalyBytes,
+                    m,
                     arrayBytesInstances
                 )
                 if threshold == check_interval - 1:
@@ -136,12 +136,20 @@ def check_severity_status(severity_level):
         tmp = ""
         return [severity_state, tmp]
 
+def load_application_model(path):
+    try:
+        m = load(path)
+        return m
+    except FileNotFoundError:
+        print("Model File not Found!")
+        sys.exit()
 
-def predict_bytes(packets, anomalyBytes, arrayBytesInstances):
+def predict_bytes(packets, anomalyBytes,m, arrayBytesInstances):
     data = packets
     try:
         # unique = np.unique(data,axis=0)
         unique = np.unique(data, axis=0)
+        c = m.predict(data)
         print("DATA: ", data)
         # print("UNIQUE: ", unique)
         if len(unique) <= 2:
@@ -162,4 +170,4 @@ if __name__ == '__main__':
     # application.run(debug=True, threaded=True)
     # application.run()
 
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+

@@ -1,5 +1,6 @@
 from dotenv import load_dotenv
 import os
+import sys
 """
     - Load the environment variables first
 """
@@ -19,6 +20,7 @@ DEBUG = os.environ.get('FLASK_DEBUG')
 HIGH_SEVERITY_INTERVAL = int(os.environ.get('HIGH_SEVERITY_INTERVAL'))
 MODERATE_SEVERITY_INTERVAL = int(os.environ.get('MODERATE_SEVERITY_INTERVAL'))
 
+MODEL_PATH = str(os.environ.get('MODEL_PATH'))
 BUFFER_LENGTH = int(os.environ.get('BUFFER_LENGTH'))
 CHECK_INTERVAL = int(os.environ.get('CHECK_INTERVAL'))
 SEVERITY_PERCENTAGE_LENGTH = float(os.environ.get('SEVERITY_PERCENTAGE_LENGTH'))
@@ -30,4 +32,4 @@ SENDER_NAME = os.environ.get('SMS_SENDER_NAME')
 MOBILE_NO = os.environ.get('MOBILE_NO')
 MODERATE_SEVERITY_SMS = os.environ.get('MODERATE_SEVERITY_SMS')
 HIGH_SEVERITY_SMS = os.environ.get('HIGH_SEVERITY_SMS')
-SMS_DEBUG = os.environ.get('SMS_DEBUG')
+SMS_DEBUG = os.environ.get('SMS_DEBUG') # SET SMS DEBUG TO FALSE IF NOT NECESSARY

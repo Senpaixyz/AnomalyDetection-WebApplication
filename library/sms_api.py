@@ -48,7 +48,8 @@ class SMS(object):
         print('Sending Message...')
         message = HIGH_SEVERITY_SMS if self.severityType == "High" else MODERATE_SEVERITY_SMS
         deviceNo = MOBILE_NO
-        if bool(SMS_DEBUG):
+        isSMS_DEBUG = eval(SMS_DEBUG)
+        if isSMS_DEBUG:
             print("Sms debugging is on...")
             print("-------SMS INFO--------")
             print("API TOKEN: ", API_TOKEN)
@@ -58,14 +59,14 @@ class SMS(object):
             print("DEVICE NO: ", deviceNo)
         else:
             print("Sms debugging is off...")
-        # params = (
-        #     ('apikey', API_TOKEN),
-        #     ('sendername', SENDER_NAME),
-        #     ('message', message),
-        #     ('number', deviceNo)
-        # )
-        # path = 'https://semaphore.co/api/v4/messages?' + urllib.parse.urlencode(params)
-        # requests.post(path)
+            params = (
+                ('apikey', API_TOKEN),
+                ('sendername', SENDER_NAME),
+                ('message', message),
+                ('number', deviceNo)
+            )
+            path = 'https://semaphore.co/api/v4/messages?' + urllib.parse.urlencode(params)
+            requests.post(path)
         print('Message Sent!')
 
     def set_interval(self):
