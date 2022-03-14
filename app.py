@@ -5,10 +5,27 @@ import numpy as np
 from scapy.all import *
 from scapy.sendrecv import sniff
 from datetime import datetime
-from flask import Flask, Response, render_template
+from flask import Flask, Response, render_template, request,jsonify
 from library.FlowRecoder import get_data, gen_json
 from library.sms_api import SMS
 from joblib import load
+import pyrebase
+
+# Firebase API
+config = {
+    "apiKey": "AIzaSyBym004axtB-2cyCO3a0_F1kDaGgaz0h_w",
+    "authDomain": "anomaly-detection-1bd55.firebaseapp.com",
+    "projectId": "anomaly-detection-1bd55",
+    "databaseURL":"https://anomaly-detection-1bd55-default-rtdb.firebaseio.com/",
+    "storageBucket": "anomaly-detection-1bd55.appspot.com",
+    "messagingSenderId": "164779489599",
+    "appId": "1:164779489599:web:503ca5bedb4beb5cb13b8a"
+};
+
+firebase = pyrebase.initialize_app(config)
+
+storage = firebase.storage()
+database = firebase.database()
 
 """
     - Load our instance of our application and severity rates
@@ -16,7 +33,7 @@ from joblib import load
 application = Flask(__name__)
 moderate_severity = SMS("Moderate", envconfig.HIGH_SEVERITY_INTERVAL)
 high_severity = SMS("High", envconfig.MODERATE_SEVERITY_INTERVAL)
-
+GLOBAL_ISMONITORING = False
 
 # run_with_ngrok(application) # for remote monitoring
 
@@ -25,7 +42,13 @@ high_severity = SMS("High", envconfig.MODERATE_SEVERITY_INTERVAL)
 def index():
     return render_template('index.html')
 
-
+@application.route('/set-monitoring', methods=['GET', 'POST'])
+def set_monitoring():
+    if request.method == "POST":
+        qtc_data = request.form.get('monitoring')
+        database.child('Network-Active').set(qtc_data)
+    results = {'processed': qtc_data}
+    return jsonify(results)
 @application.route('/fetch_data')
 def fetch_data():
     def _run():
@@ -41,63 +64,70 @@ def fetch_data():
         severity_percentage_length = envconfig.SEVERITY_PERCENTAGE_LENGTH
         sleep_interval = envconfig.SLEEP_INTERVAL
         m = load_application_model(envconfig.MODEL_PATH)
+        #database.child('Network-Active').set("True")
+        i = 0
         while True:
             captured_buffer = []
             severity_status = []
-            for pkt in sniff(iface=conf.iface, count=2):
-                captured_buffer.append(pkt)
-            data = get_data(captured_buffer)
-            data = gen_json(data)
-            #print("DATA: ", data)
-            if len(data) <= 0:
-                data = [[0, 0, 0]]
-            if len(to_predict_buffer) > buffer_length:
-                anomalyBytes, arrayBytesInstances = predict_bytes(
-                    to_predict_buffer,
-                    anomalyBytes,
-                    m,
-                    arrayBytesInstances
-                )
-                if threshold == check_interval - 1:
-                    try:
-                        current_percentage = round(anomalyBytes / arrayBytesInstances, 1)
-                        if len(severity_lists) > severity_percentage_length - 1:
-                            severity_lists.pop(0)
-                        severity_lists.append(current_percentage)
-                        severity_percentage = round(sum(severity_lists) / severity_percentage_length, 1)
-                        severity_status = check_severity_status(severity_percentage)
-                        anomalyBytes = 0
-                        arrayBytesInstances = 0
-                        threshold = 0
-                        print("CURRENT PERCENTAGE: ", current_percentage)
-                        print("SEVERITY: ", severity_lists)
-                    except ZeroDivisionError as e:
-                        print("Theres no current packet transmission...")
-                        anomalyBytes = 0
-                        arrayBytesInstances = 0
-                else:
-                    threshold += 1
-                to_predict_buffer = []
-            for packets in data:
-                average_len = packets[0]
-                average_payload = packets[1]
-                pkt_count = packets[2]
-                if len(data) > 0:
-                    pkt = [average_len, average_payload]
-                    to_predict_buffer.append(pkt)
-                json_data = json.dumps(
-                    {
-                        'time': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                        'packet_length': average_len,
-                        'payload_length': average_payload,
-                        'packet_count': pkt_count,
-                        'anomaly_rate': current_percentage,
-                        'severity_rate': severity_percentage,
-                        'severity_state': severity_status,
-                    })
+            isMonitoringOn = eval(database.child("Network-Active").get().val())
+            data = database.child('Network-Traffic').get().val()
+            #data = []#ref.val()
+            #for pkt in sniff(iface=conf.iface, count=2):
+            #    captured_buffer.append(pkt)
+            #data = get_data(captured_buffer)
+           # data = gen_json(data)
 
-                yield f"data:{json_data}\n\n"
-                time.sleep(sleep_interval)
+
+            if isMonitoringOn == True:
+                if len(data) <= 0:
+                    data = [[0, 0, 0]]
+                if len(to_predict_buffer) > buffer_length:
+                    anomalyBytes, arrayBytesInstances = predict_bytes(
+                        to_predict_buffer,
+                        anomalyBytes,
+                        m,
+                        arrayBytesInstances
+                    )
+                    if threshold == check_interval - 1:
+                        try:
+                            current_percentage = round(anomalyBytes / arrayBytesInstances, 1)
+                            if len(severity_lists) > severity_percentage_length - 1:
+                                severity_lists.pop(0)
+                            severity_lists.append(current_percentage)
+                            severity_percentage = round(sum(severity_lists) / severity_percentage_length, 1)
+                            severity_status = check_severity_status(severity_percentage)
+                            anomalyBytes = 0
+                            arrayBytesInstances = 0
+                            threshold = 0
+                            print("CURRENT PERCENTAGE: ", current_percentage)
+                            print("SEVERITY: ", severity_lists)
+                        except ZeroDivisionError as e:
+                            print("Theres no current packet transmission...")
+                            anomalyBytes = 0
+                            arrayBytesInstances = 0
+                    else:
+                        threshold += 1
+                    to_predict_buffer = []
+                for packets in data:
+                    average_len = packets[0]
+                    average_payload = packets[1]
+                    pkt_count = packets[2]
+                    if len(data) > 0:
+                        pkt = [average_len, average_payload]
+                        to_predict_buffer.append(pkt)
+                    json_data = json.dumps(
+                        {
+                            'time': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                            'packet_length': average_len,
+                            'payload_length': average_payload,
+                            'packet_count': pkt_count,
+                            'anomaly_rate': current_percentage,
+                            'severity_rate': severity_percentage,
+                            'severity_state': severity_status,
+                        })
+
+                    yield f"data:{json_data}\n\n"
+                    time.sleep(sleep_interval)
 
     return Response(_run(), mimetype='text/event-stream')
 
@@ -162,6 +192,7 @@ def predict_bytes(packets, anomalyBytes,m, arrayBytesInstances):
 
 
 if __name__ == '__main__':
+    database.child('Network-Active').set("False")
     application.run(
         host=envconfig.HOST,
         port=envconfig.PORT,
