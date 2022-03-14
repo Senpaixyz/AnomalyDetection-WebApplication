@@ -12,6 +12,7 @@ from joblib import load
 import pyrebase
 
 # Firebase API
+# set temporaryly some api key to py
 config = {
     "apiKey": "AIzaSyBym004axtB-2cyCO3a0_F1kDaGgaz0h_w",
     "authDomain": "anomaly-detection-1bd55.firebaseapp.com",
@@ -30,10 +31,32 @@ database = firebase.database()
 """
     - Load our instance of our application and severity rates
 """
+
+SMS_API_TOKEN = "f828b11e93e3def79dbd33ebb5689195"
+SMS_SENDER_NAME = "SEMAPHORE"
+MOBILE_NO = "09380258562"
+MODERATE_SEVERITY_SMS = "Moderate Severity Message here"
+HIGH_SEVERITY_SMS = "High Severity Message here"
+SMS_DEBUG = True
+
+
+HIGH_SEVERITY_INTERVAL = 10 # 10s
+MODERATE_SEVERITY_INTERVAL = 20 # 20s
+
+
+#System Configuration
+MODEL_PATH = "model/clf.joblib"
+CHECK_INTERVAL = 4
+SEVERITY_PERCENTAGE_LENGTH = 3
+BUFFER_LENGTH = 20
+SLEEP_INTERVAL = 0.2
+UNIQUE_LENGTH_THRESHOLD = 2
+
+
 application = Flask(__name__)
-moderate_severity = SMS("Moderate", envconfig.HIGH_SEVERITY_INTERVAL)
-high_severity = SMS("High", envconfig.MODERATE_SEVERITY_INTERVAL)
-GLOBAL_ISMONITORING = False
+moderate_severity = SMS("Moderate", MODERATE_SEVERITY_SMS)
+high_severity = SMS("High", HIGH_SEVERITY_SMS)
+
 
 # run_with_ngrok(application) # for remote monitoring
 
@@ -59,11 +82,11 @@ def fetch_data():
         severity_lists = []
         current_percentage = 0.0
         severity_percentage = 0.0
-        buffer_length = envconfig.BUFFER_LENGTH
-        check_interval = envconfig.CHECK_INTERVAL
-        severity_percentage_length = envconfig.SEVERITY_PERCENTAGE_LENGTH
-        sleep_interval = envconfig.SLEEP_INTERVAL
-        m = load_application_model(envconfig.MODEL_PATH)
+        buffer_length = BUFFER_LENGTH
+        check_interval = CHECK_INTERVAL
+        severity_percentage_length = SEVERITY_PERCENTAGE_LENGTH
+        sleep_interval = SLEEP_INTERVAL
+        m = load_application_model(MODEL_PATH)
         #database.child('Network-Active').set("True")
         i = 0
         while True:
@@ -193,11 +216,7 @@ def predict_bytes(packets, anomalyBytes,m, arrayBytesInstances):
 
 if __name__ == '__main__':
     database.child('Network-Active').set("False")
-    application.run(
-        host=envconfig.HOST,
-        port=envconfig.PORT,
-        debug=envconfig.DEBUG,
-    )
+    application.run(debug=True)
     # application.run(debug=True, threaded=True)
     # application.run()
 
