@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AOTAD</title>
+    <title>IoTAD</title>
     <link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='css/bootstrap.min.css') }}">
     <link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='css/Chart.min.css') }}">
      <link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='css/index.css') }}">
@@ -15,21 +15,22 @@
 <body>
   <!--Toast-->
 
-<nav class="navbar navbar-dark text-light bg-dark">
+<nav class="navbar navbar-dark text-light" style="background:#181818">
   <a class="navbar-brand" href="#">
-    <img src="/docs/4.0/assets/brand/bootstrap-solid.svg" width="30" height="30" class="d-inline-block align-top" alt="">
-    IoT Anomaly Detection
+    <img src="{{ url_for('static',filename='img/poseidon-logo-small.png') }}" width="30" height="30" class="d-inline-block align-top" alt="">
+    IoT Network Traffic Anomaly Detection
   </a>
 </nav>
-
-<div class="container-fluid" aria-live="polite" aria-atomic="true" style="position: relative; min-height: 200px;">
     <div class="toast-container">
     </div>
+<div class="container-fluid" aria-live="polite" aria-atomic="true"
+     style="position: relative; min-height: 200px;background: #121212;">
+
     <div class="row">
         <div class="col-md-3 col-sm-12 col-xs-12 mt-3">
             <div class="row mt-5">
                 <div class="col-md-12">
-                    <h5 class="display-5 text-center text-warning">REALTIME IoT ANOMALY PERCENTAGE</h5>
+                    <h5 class="display-5 text-center text-warning">Network Traffic Severity</h5>
                 </div>
                 <div class="col-md-12 mt-3">
                     <div id="left-bar" style="margin:0 auto;"></div>
@@ -44,10 +45,10 @@
                    </div>
                 </div>
                 <div class="col-md-12 mt-3">
-                    <small><b style="font-family:Arial;">DDOS Severity Indicator</b></small>
+                    <small><b style="font-family:Arial;" class="text-light">DDOS Severity Indicator</b></small>
                     <div class="row mt-3">
                         <div class="col-md-12 col-sm-12 col-xs-12">
-                             <div class="d-flex justify-content-around text-center">
+                             <div class="d-flex justify-content-around text-center text-secondary">
                                  <div class="p-2"><small>Low</small></div>
                                  <div class="p-2"><small>Moderate</small></div>
                                  <div class="p-2"><small>High</small></div>
@@ -59,7 +60,7 @@
                 </div>
                 <div class="col-md-12 mb-3 d-flex justify-content-center">
                     <input type="hidden" value="False" id="is-monitoring"/>
-                    <button class="btn btn-success mx-4 my-2" id="monitoring">Start Monitoring</button>
+                    <button class="btn btn-success mx-5 my-2" id="monitoring">Start Monitoring</button>
                 </div>
             </div>
 
@@ -67,7 +68,7 @@
         <div class="col-md-9 col-sm-12 col-xs-12 mt-5">
             <div class="row">
                 <div class="col-md-12 col-sm-12 col-xs-12">
-                    <h5 class="display-4 ml-md-5 mb-3" style="font-size:25px;">Realtime IoT Network Traffic Monitoring</h5>
+                    <h5 class="display-4 ml-md-5 mb-3 text-light" style="font-size:25px;">Realtime IoT Network Traffic Monitoring</h5>
                 </div>
                 <div class="col-md-12 col-sm-12 col-xs-12">
                     <div class="canvas-parent">
@@ -81,9 +82,9 @@
     </div>
 
 </div>
-    <footer class="py-3 bg-dark">
+    <footer class="py-3" style="background: #181818;">
         <div class="container">
-           <p class="text-center text-light mt-3">Copyright &copy; 2021 IoT</p>
+           <p class="text-center text-light mt-3">Copyright &copy; 2022 Elerock</p>
         </div>
     </footer>
 <script src="{{ url_for('static',filename='js/popper.min.js') }}"></script>
@@ -95,6 +96,7 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js">
 </script>
+
 <script>
     let container = document.querySelector('#left-bar');
     let severity = document.querySelector('#severity');
@@ -313,7 +315,7 @@
                                       <strong class="mr-auto text-light">`+data['header']+`</strong>
                                 </div>
 
-                                <div class="toast-body px-2 py-2 bg-light">
+                                <div class="toast-body px-2 py-2 bg-dark text-light">
                                     <small>`+data['message']+`</small>
                                     <br>
                                     <small class="text-secondary">`+severity[1]+`</small>

@@ -79,10 +79,8 @@ def fetch_data():
         severity_percentage_length = SEVERITY_PERCENTAGE_LENGTH
         sleep_interval = SLEEP_INTERVAL
         m = load_application_model(MODEL_PATH)
-        #database.child('Network-Active').set("True")
-        i = 0
+        database.child('Network-Active').set("False")
         while True:
-            captured_buffer = []
             severity_status = []
             isMonitoringOn = eval(database.child("Network-Active").get().val())
             data = database.child('Network-Traffic').get().val()
@@ -202,7 +200,6 @@ def predict_bytes(packets, anomalyBytes,m, arrayBytesInstances):
 
 
 if __name__ == '__main__':
-    database.child('Network-Active').set("False")
     app.run(debug=True)
     # application.run(debug=True, threaded=True)
     # application.run()
