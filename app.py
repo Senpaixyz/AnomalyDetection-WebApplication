@@ -6,6 +6,7 @@ from library.sms_api import SMS
 from joblib import load
 import pyrebase
 import time
+import sys
 # Firebase API
 # set temporaryly some api key to py
 config = {
@@ -44,7 +45,7 @@ UNIQUE_LENGTH_THRESHOLD = 2
 MODERATE_SEVERITY_SMS = "Moderate Severity Message here"
 HIGH_SEVERITY_SMS = "High Severity Message here"
 
-application = Flask(__name__)
+app = Flask(__name__)
 moderate_severity = SMS("Moderate", MODERATE_SEVERITY_SMS)
 high_severity = SMS("High", HIGH_SEVERITY_SMS)
 
@@ -52,18 +53,18 @@ high_severity = SMS("High", HIGH_SEVERITY_SMS)
 # run_with_ngrok(application) # for remote monitoring
 
 
-@application.route('/')
+@app.route('/')
 def index():
     return render_template('index.html')
 
-@application.route('/set-monitoring', methods=['GET', 'POST'])
+@app.route('/set-monitoring', methods=['GET', 'POST'])
 def set_monitoring():
     if request.method == "POST":
         qtc_data = request.form.get('monitoring')
         database.child('Network-Active').set(qtc_data)
     results = {'processed': qtc_data}
     return jsonify(results)
-@application.route('/fetch_data')
+@app.route('/fetch_data')
 def fetch_data():
     def _run():
         to_predict_buffer = []
@@ -202,7 +203,7 @@ def predict_bytes(packets, anomalyBytes,m, arrayBytesInstances):
 
 if __name__ == '__main__':
     database.child('Network-Active').set("False")
-    application.run(debug=True)
+    app.run(debug=True)
     # application.run(debug=True, threaded=True)
     # application.run()
 
