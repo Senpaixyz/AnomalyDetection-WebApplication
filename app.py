@@ -1,12 +1,8 @@
 import json
-import time
-import envconfig
 import numpy as np
 from scapy.all import *
-from scapy.sendrecv import sniff
 from datetime import datetime
 from flask import Flask, Response, render_template, request,jsonify
-from library.FlowRecoder import get_data, gen_json
 from library.sms_api import SMS
 from joblib import load
 import pyrebase
