@@ -1,12 +1,11 @@
 import json
 import numpy as np
-from scapy.all import *
 from datetime import datetime
 from flask import Flask, Response, render_template, request,jsonify
 from library.sms_api import SMS
 from joblib import load
 import pyrebase
-
+import time
 # Firebase API
 # set temporaryly some api key to py
 config = {
@@ -28,12 +27,6 @@ database = firebase.database()
     - Load our instance of our application and severity rates
 """
 
-SMS_API_TOKEN = "f828b11e93e3def79dbd33ebb5689195"
-SMS_SENDER_NAME = "SEMAPHORE"
-MOBILE_NO = "09380258562"
-MODERATE_SEVERITY_SMS = "Moderate Severity Message here"
-HIGH_SEVERITY_SMS = "High Severity Message here"
-SMS_DEBUG = True
 
 
 HIGH_SEVERITY_INTERVAL = 10 # 10s
@@ -48,6 +41,8 @@ BUFFER_LENGTH = 20
 SLEEP_INTERVAL = 0.2
 UNIQUE_LENGTH_THRESHOLD = 2
 
+MODERATE_SEVERITY_SMS = "Moderate Severity Message here"
+HIGH_SEVERITY_SMS = "High Severity Message here"
 
 application = Flask(__name__)
 moderate_severity = SMS("Moderate", MODERATE_SEVERITY_SMS)
@@ -90,11 +85,6 @@ def fetch_data():
             severity_status = []
             isMonitoringOn = eval(database.child("Network-Active").get().val())
             data = database.child('Network-Traffic').get().val()
-            #data = []#ref.val()
-            #for pkt in sniff(iface=conf.iface, count=2):
-            #    captured_buffer.append(pkt)
-            #data = get_data(captured_buffer)
-           # data = gen_json(data)
 
 
             if isMonitoringOn == True:

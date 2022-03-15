@@ -1,16 +1,15 @@
-import os
 import time
-from dotenv import load_dotenv
-import sys, requests, urllib
-from datetime import datetime
-import envconfig
+import requests, urllib
 
-API_TOKEN = envconfig.API_TOKEN
-SENDER_NAME = envconfig.SENDER_NAME
-MOBILE_NO = envconfig.MOBILE_NO
-MODERATE_SEVERITY_SMS = envconfig.MODERATE_SEVERITY_SMS
-HIGH_SEVERITY_SMS = envconfig.HIGH_SEVERITY_SMS
-SMS_DEBUG = envconfig.SMS_DEBUG
+
+API_TOKEN = "f828b11e93e3def79dbd33ebb5689195"
+SENDER_NAME = "SEMAPHORE"
+MOBILE_NO = "09380258562"
+MODERATE_SEVERITY_SMS = "Moderate Severity Message here"
+HIGH_SEVERITY_SMS = "High Severity Message here"
+SMS_DEBUG = True
+
+
 
 class SMS(object):
 
