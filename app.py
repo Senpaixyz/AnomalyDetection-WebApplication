@@ -39,7 +39,7 @@ MODEL_PATH = "model/clf.joblib"
 CHECK_INTERVAL = 4
 SEVERITY_PERCENTAGE_LENGTH = 3
 BUFFER_LENGTH = 20
-SLEEP_INTERVAL = 0.1
+SLEEP_INTERVAL = 5#0.1
 
 UNIQUE_LENGTH_THRESHOLD = 2
 INTERVAL_STATUS_CHECKER = 20
@@ -88,7 +88,7 @@ def fetch_data():
         connecting_loss_interval = INTERVAL_LOSS_CHECKER
         connecting_total_attempt = INTERVAL_TOTAL_ATTEMPT
         check_waiting_start = 0
-        check_waiting_interval = 8
+        check_waiting_interval = 5
         buffer_length = BUFFER_LENGTH
         check_interval = CHECK_INTERVAL
         severity_percentage_length = SEVERITY_PERCENTAGE_LENGTH
@@ -158,6 +158,7 @@ def fetch_data():
                         #time.sleep(sleep_interval)
                     status_count += 1
                     if status_count >= check_status_interval:
+                        print("SETTING STATUS TO FAILED!!!")
                         database.child('Network-Connection').set("Failed")
                         status_count = 0
                 else:
@@ -169,6 +170,7 @@ def fetch_data():
 
                     yield f"data:{json_data}\n\n"
             else:
+
                 if check_waiting_start > check_waiting_interval:
                     status_conn = ""
                     check_waiting_start = 0
