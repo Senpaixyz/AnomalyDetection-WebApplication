@@ -40,10 +40,11 @@ CHECK_INTERVAL = 4
 SEVERITY_PERCENTAGE_LENGTH = 3
 BUFFER_LENGTH = 20
 SLEEP_INTERVAL = 0.1
+
 UNIQUE_LENGTH_THRESHOLD = 2
 INTERVAL_STATUS_CHECKER = 20
-INTERVAL_LOSS_CHECKER = 30
-INTERVAL_TOTAL_ATTEMPT = 10
+INTERVAL_LOSS_CHECKER = 10
+INTERVAL_TOTAL_ATTEMPT = 4
 
 
 
@@ -87,7 +88,7 @@ def fetch_data():
         connecting_loss_interval = INTERVAL_LOSS_CHECKER
         connecting_total_attempt = INTERVAL_TOTAL_ATTEMPT
         check_waiting_start = 0
-        check_waiting_interval = 5
+        check_waiting_interval = 8
         buffer_length = BUFFER_LENGTH
         check_interval = CHECK_INTERVAL
         severity_percentage_length = SEVERITY_PERCENTAGE_LENGTH
@@ -172,8 +173,6 @@ def fetch_data():
                     status_conn = ""
                     check_waiting_start = 0
                     status_loss_count += 1
-                    print("STATUS: ", status_loss_count)
-                    print("ATTEMPT: ", connecting_attempt)
                     if connecting_attempt > connecting_total_attempt:
                         status_conn = "Stop"
                     elif status_loss_count >= connecting_loss_interval:
