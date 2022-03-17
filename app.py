@@ -39,8 +39,13 @@ MODEL_PATH = "model/clf.joblib"
 CHECK_INTERVAL = 4
 SEVERITY_PERCENTAGE_LENGTH = 3
 BUFFER_LENGTH = 20
-SLEEP_INTERVAL = 0.2
+SLEEP_INTERVAL = 0.1
 UNIQUE_LENGTH_THRESHOLD = 2
+INTERVAL_STATUS_CHECKER = 20
+INTERVAL_LOSS_CHECKER = 30
+INTERVAL_TOTAL_ATTEMPT = 10
+
+
 
 MODERATE_SEVERITY_SMS = "Moderate Severity Message here"
 HIGH_SEVERITY_SMS = "High Severity Message here"
@@ -49,7 +54,7 @@ app = Flask(__name__)
 moderate_severity = SMS("Moderate", MODERATE_SEVERITY_SMS)
 high_severity = SMS("High", HIGH_SEVERITY_SMS)
 
-
+a=0
 # run_with_ngrok(application) # for remote monitoring
 
 
@@ -74,69 +79,119 @@ def fetch_data():
         severity_lists = []
         current_percentage = 0.0
         severity_percentage = 0.0
+        connecting_attempt = 0
+        status_count = 0
+        status_loss_count = 0
+
+        check_status_interval = INTERVAL_STATUS_CHECKER
+        connecting_loss_interval = INTERVAL_LOSS_CHECKER
+        connecting_total_attempt = INTERVAL_TOTAL_ATTEMPT
+        check_waiting_start = 0
+        check_waiting_interval = 5
         buffer_length = BUFFER_LENGTH
         check_interval = CHECK_INTERVAL
         severity_percentage_length = SEVERITY_PERCENTAGE_LENGTH
         sleep_interval = SLEEP_INTERVAL
         m = load_application_model(MODEL_PATH)
+        database.child('Network-Connection').set("Failed")
         database.child('Network-Active').set("False")
+
         while True:
             severity_status = []
             isMonitoringOn = eval(database.child("Network-Active").get().val())
             data = database.child('Network-Traffic').get().val()
+            status = database.child('Network-Connection').get().val()
 
+            if status == "Connected":
+                if isMonitoringOn:
+                    if len(data) <= 0:
+                        data = [[0, 0, 0]]
+                    if len(to_predict_buffer) > buffer_length:
+                        anomalyBytes, arrayBytesInstances = predict_bytes(
+                            to_predict_buffer,
+                            anomalyBytes,
+                            m,
+                            arrayBytesInstances
+                        )
+                        if threshold == check_interval - 1:
+                            try:
+                                current_percentage = round(anomalyBytes / arrayBytesInstances, 1)
+                                if len(severity_lists) > severity_percentage_length - 1:
+                                    severity_lists.pop(0)
+                                severity_lists.append(current_percentage)
+                                severity_percentage = round(sum(severity_lists) / severity_percentage_length, 1)
+                                severity_status = check_severity_status(severity_percentage)
+                                anomalyBytes = 0
+                                arrayBytesInstances = 0
+                                threshold = 0
+                                print("CURRENT PERCENTAGE: ", current_percentage)
+                                print("SEVERITY: ", severity_lists)
+                            except ZeroDivisionError as e:
+                                print("Theres no current packet transmission...")
+                                anomalyBytes = 0
+                                arrayBytesInstances = 0
+                        else:
+                            threshold += 1
+                        to_predict_buffer = []
+                    for packets in data:
+                        average_len = packets[0]
+                        average_payload = packets[1]
+                        pkt_count = packets[2]
+                        if len(data) > 0:
+                            pkt = [average_len, average_payload]
+                            to_predict_buffer.append(pkt)
+                        json_data = json.dumps(
+                            {
+                                'time': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                                'packet_length': average_len,
+                                'payload_length': average_payload,
+                                'packet_count': pkt_count,
+                                'anomaly_rate': current_percentage,
+                                'severity_rate': severity_percentage,
+                                'severity_state': severity_status,
+                                'status': 'Connected',
+                                'monitor': 'On'
+                            })
 
-            if isMonitoringOn == True:
-                if len(data) <= 0:
-                    data = [[0, 0, 0]]
-                if len(to_predict_buffer) > buffer_length:
-                    anomalyBytes, arrayBytesInstances = predict_bytes(
-                        to_predict_buffer,
-                        anomalyBytes,
-                        m,
-                        arrayBytesInstances
-                    )
-                    if threshold == check_interval - 1:
-                        try:
-                            current_percentage = round(anomalyBytes / arrayBytesInstances, 1)
-                            if len(severity_lists) > severity_percentage_length - 1:
-                                severity_lists.pop(0)
-                            severity_lists.append(current_percentage)
-                            severity_percentage = round(sum(severity_lists) / severity_percentage_length, 1)
-                            severity_status = check_severity_status(severity_percentage)
-                            anomalyBytes = 0
-                            arrayBytesInstances = 0
-                            threshold = 0
-                            print("CURRENT PERCENTAGE: ", current_percentage)
-                            print("SEVERITY: ", severity_lists)
-                        except ZeroDivisionError as e:
-                            print("Theres no current packet transmission...")
-                            anomalyBytes = 0
-                            arrayBytesInstances = 0
-                    else:
-                        threshold += 1
-                    to_predict_buffer = []
-                for packets in data:
-                    average_len = packets[0]
-                    average_payload = packets[1]
-                    pkt_count = packets[2]
-                    if len(data) > 0:
-                        pkt = [average_len, average_payload]
-                        to_predict_buffer.append(pkt)
+                        yield f"data:{json_data}\n\n"
+                        #time.sleep(sleep_interval)
+                    status_count += 1
+                    if status_count >= check_status_interval:
+                        database.child('Network-Connection').set("Failed")
+                        status_count = 0
+                else:
                     json_data = json.dumps(
                         {
-                            'time': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                            'packet_length': average_len,
-                            'payload_length': average_payload,
-                            'packet_count': pkt_count,
-                            'anomaly_rate': current_percentage,
-                            'severity_rate': severity_percentage,
-                            'severity_state': severity_status,
+                            'status': 'Connected',
+                            'monitor': 'Off'
                         })
 
                     yield f"data:{json_data}\n\n"
-                    time.sleep(sleep_interval)
+            else:
+                if check_waiting_start > check_waiting_interval:
+                    status_conn = ""
+                    check_waiting_start = 0
+                    status_loss_count += 1
+                    print("STATUS: ", status_loss_count)
+                    print("ATTEMPT: ", connecting_attempt)
+                    if connecting_attempt > connecting_total_attempt:
+                        status_conn = "Stop"
+                    elif status_loss_count >= connecting_loss_interval:
+                        status_conn = "Failed"
+                        status_loss_count = 0
+                        connecting_attempt += 1
+                    else:
+                        status_conn = "Connecting"
 
+                    json_data = json.dumps(
+                        {
+                            'status': status_conn,
+                            'monitor': 'Off'
+                        })
+
+                    yield f"data:{json_data}\n\n"
+                check_waiting_start += 1
+            time.sleep(sleep_interval)
     return Response(_run(), mimetype='text/event-stream')
 
 def check_severity_status(severity_level):

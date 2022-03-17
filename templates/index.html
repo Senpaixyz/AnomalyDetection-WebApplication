@@ -100,8 +100,9 @@
 <script>
     let container = document.querySelector('#left-bar');
     let severity = document.querySelector('#severity');
+    let GLOBAL_STATUS = ""
     $(document).ready(function () {
-
+        $("#monitoring").attr("disabled",true);
         // Severity rate
         var severity_graph = new ProgressBar.Line(severity, {
             from: { color: '#FFBF00'},
@@ -220,21 +221,29 @@
 
         source.onmessage = function (event) {
             const data = JSON.parse(event.data);
-            if (config.data.labels.length === 20) {
-                config.data.labels.shift();
-                config.data.datasets[0].data.shift();
-                config.data.datasets[1].data.shift();
-                config.data.datasets[2].data.shift();
+            console.log(data)
+            if(data.monitor == "On"){
+                if (config.data.labels.length === 20) {
+                    config.data.labels.shift();
+                    config.data.datasets[0].data.shift();
+                    config.data.datasets[1].data.shift();
+                    config.data.datasets[2].data.shift();
+                }
+                config.data.labels.push(data.time);
+                config.data.datasets[0].data.push(data.packet_length);
+                config.data.datasets[1].data.push(data.payload_length);
+                config.data.datasets[2].data.push(data.packet_count);
+                bar.animate(data.anomaly_rate);
+
+                toast_severity(data.severity_state)
+                severity_graph.animate(data.severity_rate)
+                lineChart.update();
             }
-            config.data.labels.push(data.time);
-            config.data.datasets[0].data.push(data.packet_length);
-            config.data.datasets[1].data.push(data.payload_length);
-            config.data.datasets[2].data.push(data.packet_count);
-            bar.animate(data.anomaly_rate);
-            console.log("DATA: ", data.severity_state)
-            toast_severity(data.severity_state)
-            severity_graph.animate(data.severity_rate)
-            lineChart.update();
+            else{
+                toast_status(data)
+
+            }
+
         }
 
 
@@ -274,8 +283,60 @@
 
         });
     });
+    function toast_status(data){
+        let status_data = {}
+        if(data.status == 'Connected'){
+              status_data = {
+                "header": "Connected",
+                "background": "bg-success",
+                "message": "Server is connected to IoT device. Please turn on monitoring mode."
+              };
+              $("#monitoring").attr("disabled",false);
+        }
+        else if(data.status == 'Connecting'){
+              status_data = {
+                "header": "Connecting...",
+                "background": "bg-warning",
+                "message": "Server is connecting to IoT Device. This may take a few minutes"
+              };
+             $("#monitoring").attr("disabled",true);
+        }
+        else if(data.status == 'Failed'){
+              status_data = {
+                "header": "Connection Failed",
+                "background": "bg-danger",
+                "message": "Failed to connect to IoT Device. Check connection of IoT device"
+              };
+             $("#monitoring").attr("disabled",true);
+        }
+        else if(data.status == 'Stop'){
+              status_data = {
+                "header": "Connection Failed",
+                "background": "bg-danger",
+                "message": "Maximum connection attempt!, Please refresh your browser."
+              };
+              $("#monitoring").attr("disabled",true);
+        }
+        let toast_html = `
+                    <div class="toast fade show" id="toast" style="position: absolute; top: 10px; right: 5px; z-index:1">
+                        <div class="toast-header ` + status_data['background'] + ` px-3 py-1">
+                              <strong class="mr-auto text-light">`+status_data['header']+`</strong>
+                        </div>
+
+                        <div class="toast-body px-3 py-3 bg-dark text-light">
+                            <small>`+status_data['message']+`</small>
+                        </div>
+                    </div>
+            `;
+         document.querySelector('.toast-container').innerHTML = toast_html;
+
+         $("#toast").toast({
+            delay: 2000
+         });
+         $("#toast").toast("show");
+    }
     function toast_severity(severity){
-            data = {}
+            let data = {}
             console.log(severity.length)
 
             if (severity.length > 0){
