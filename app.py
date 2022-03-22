@@ -28,8 +28,6 @@ database = firebase.database()
     - Load our instance of our application and severity rates
 """
 
-
-
 HIGH_SEVERITY_INTERVAL = 10 # 10s
 MODERATE_SEVERITY_INTERVAL = 20 # 20s
 
@@ -39,7 +37,7 @@ MODEL_PATH = "model/clf.joblib"
 CHECK_INTERVAL = 4
 SEVERITY_PERCENTAGE_LENGTH = 3
 BUFFER_LENGTH = 20
-SLEEP_INTERVAL = 0.8#0.1
+SLEEP_INTERVAL = 0.5#0.1
 
 UNIQUE_LENGTH_THRESHOLD = 2
 INTERVAL_STATUS_CHECKER = 30
@@ -56,7 +54,8 @@ moderate_severity = SMS("Moderate", MODERATE_SEVERITY_SMS)
 high_severity = SMS("High", HIGH_SEVERITY_SMS)
 
 
-# run_with_ngrok(application) # for remote monitoring
+
+# run_with_ngrok(application) # for remote monitoringaa
 
 
 @app.route('/')
@@ -73,7 +72,9 @@ def set_monitoring():
 @app.route('/fetch_data')
 def fetch_data():
     def _run():
-        to_predict_buffer = []
+        database.child('Network-Connection').set("Failed")
+        database.child('Network-Active').set("False")
+
         anomalyBytes = 0
         arrayBytesInstances = 0
         threshold = 0
@@ -93,10 +94,9 @@ def fetch_data():
         check_interval = CHECK_INTERVAL
         severity_percentage_length = SEVERITY_PERCENTAGE_LENGTH
         sleep_interval = SLEEP_INTERVAL
-        m = load_application_model(MODEL_PATH)
-        database.child('Network-Connection').set("Failed")
-        database.child('Network-Active').set("False")
 
+        to_predict_buffer = []
+        m = load_application_model(MODEL_PATH)
         while True:
             severity_status = []
             isMonitoringOn = eval(database.child("Network-Active").get().val())
@@ -125,10 +125,10 @@ def fetch_data():
                                 anomalyBytes = 0
                                 arrayBytesInstances = 0
                                 threshold = 0
-                                print("CURRENT PERCENTAGE: ", current_percentage)
-                                print("SEVERITY: ", severity_lists)
+                                #print("CURRENT PERCENTAGE: ", current_percentage)
+                                #print("SEVERITY: ", severity_lists)
                             except ZeroDivisionError as e:
-                                print("Theres no current packet transmission...")
+                                print("Network Inactive...")
                                 anomalyBytes = 0
                                 arrayBytesInstances = 0
                         else:
@@ -156,11 +156,7 @@ def fetch_data():
 
                         yield f"data:{json_data}\n\n"
                         #time.sleep(sleep_interval)
-                    status_count += 1
-                    if status_count >= check_status_interval:
-                        print("SETTING STATUS TO FAILED!!!")
-                        database.child('Network-Connection').set("Failed")
-                        status_count = 0
+
                 else:
                     json_data = json.dumps(
                         {
@@ -169,6 +165,13 @@ def fetch_data():
                         })
 
                     yield f"data:{json_data}\n\n"
+
+
+                status_count += 1
+                if status_count >= check_status_interval:
+                    #print("SETTING STATUS TO FAILED!!!")
+                    database.child('Network-Connection').set("Failed")
+                    status_count = 0
             else:
 
                 if check_waiting_start > check_waiting_interval:
@@ -244,18 +247,19 @@ def predict_bytes(packets, anomalyBytes,m, arrayBytesInstances):
         # unique = np.unique(data,axis=0)
         unique = np.unique(data, axis=0)
         c = m.predict(data)
-        print("DATA: ", data)
+        #print("DATA: ", data)
         # print("UNIQUE: ", unique)
         if len(unique) <= 2:
             anomalyBytes += 1
         arrayBytesInstances += 1
-        print("UNIQUE LENGTH: ", anomalyBytes, " TOTAL LENGTH: ", arrayBytesInstances)
+        #print("UNIQUE LENGTH: ", anomalyBytes, " TOTAL LENGTH: ", arrayBytesInstances)
         return anomalyBytes, arrayBytesInstances
     except ValueError as e:
-        print("Array values contains I dunno.... :) ")
+        print("Input to model values contains valid network packets.... :) ")
 
 
 if __name__ == '__main__':
+
     app.run(debug=True)
     # application.run(debug=True, threaded=True)
     # application.run()

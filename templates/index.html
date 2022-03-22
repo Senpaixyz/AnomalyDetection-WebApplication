@@ -101,6 +101,7 @@
     let container = document.querySelector('#left-bar');
     let severity = document.querySelector('#severity');
     let GLOBAL_STATUS = ""
+    let RUN_ONCE = false;
     $(document).ready(function () {
         $("#monitoring").attr("disabled",true);
         // Severity rate
@@ -238,6 +239,10 @@
                 toast_severity(data.severity_state)
                 severity_graph.animate(data.severity_rate)
                 lineChart.update();
+
+                if($("#monitoring").is(":disabled")){
+                   $("#monitoring").attr("disabled",false);
+                }
             }
             else{
                 toast_status(data)
@@ -329,6 +334,9 @@
                     </div>
             `;
          document.querySelector('.toast-container').innerHTML = toast_html;
+
+
+
 
          $("#toast").toast({
             delay: 2000
