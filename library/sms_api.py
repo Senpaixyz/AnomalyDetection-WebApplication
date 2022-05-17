@@ -7,7 +7,7 @@ SENDER_NAME = "SEMAPHORE"
 MOBILE_NO = "09380258562"
 MODERATE_SEVERITY_SMS = "Moderate Severity Message here"
 HIGH_SEVERITY_SMS = "High Severity Message here"
-SMS_DEBUG = True
+SMS_DEBUG = "True"
 
 
 
@@ -70,7 +70,7 @@ class SMS(object):
 
     def set_interval(self):
         currTime = time.time()
-        self.nxtSent = currTime + self.setDefaultInterval
+        self.nxtSent = currTime + float(self.setDefaultInterval)
         print(" NEXT SMS WILL BE SEND : ", time.ctime(self.nxtSent), " AT ", self.severityType)
 
     def reset_interval(self):

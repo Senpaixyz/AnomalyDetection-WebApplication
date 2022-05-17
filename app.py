@@ -4,9 +4,13 @@ from datetime import datetime
 from flask import Flask, Response, render_template, request,jsonify
 from library.sms_api import SMS
 from joblib import load
-import pyrebase
+#import pyrebase
 import time
 import sys
+from scapy.all import *
+from scapy.sendrecv import sniff
+import pyrebase
+from library.FlowRecoder import get_data, gen_json
 # Firebase API
 # set temporaryly some api key to py
 config = {
@@ -50,10 +54,10 @@ MODERATE_SEVERITY_SMS = "Moderate Severity Message here"
 HIGH_SEVERITY_SMS = "High Severity Message here"
 
 app = Flask(__name__)
-moderate_severity = SMS("Moderate", MODERATE_SEVERITY_SMS)
-high_severity = SMS("High", HIGH_SEVERITY_SMS)
+moderate_severity = SMS("Moderate", HIGH_SEVERITY_INTERVAL)
+high_severity = SMS("High", MODERATE_SEVERITY_INTERVAL)
 
-
+isDebugMode = True
 
 # run_with_ngrok(application) # for remote monitoringaa
 
@@ -64,16 +68,20 @@ def index():
 
 @app.route('/set-monitoring', methods=['GET', 'POST'])
 def set_monitoring():
+    qtc_data = ''
     if request.method == "POST":
         qtc_data = request.form.get('monitoring')
-        database.child('Network-Active').set(qtc_data)
+        if not isDebugMode:
+            database.child('Network-Active').set(qtc_data)
+    #results = {'processed': qtc_data}
     results = {'processed': qtc_data}
     return jsonify(results)
 @app.route('/fetch_data')
 def fetch_data():
     def _run():
-        database.child('Network-Connection').set("Failed")
-        database.child('Network-Active').set("False")
+        if not isDebugMode:
+            database.child('Network-Connection').set("Failed")
+            database.child('Network-Active').set("False")
 
         anomalyBytes = 0
         arrayBytesInstances = 0
@@ -97,14 +105,21 @@ def fetch_data():
 
         to_predict_buffer = []
         m = load_application_model(MODEL_PATH)
+
         while True:
             severity_status = []
-            isMonitoringOn = eval(database.child("Network-Active").get().val())
-            data = database.child('Network-Traffic').get().val()
-            status = database.child('Network-Connection').get().val()
 
+            isMonitoringOn = True if isDebugMode else eval(database.child("Network-Active").get().val())
+            data = [] if isDebugMode else database.child('Network-Traffic').get().val()
+            status = "Connected" if isDebugMode else database.child('Network-Connection').get().val()
+            captured_buffer = []
             if status == "Connected":
                 if isMonitoringOn:
+                    if isDebugMode:
+                        for pkt in sniff(iface=conf.iface, count=40):
+                            captured_buffer.append(pkt)
+                        data = get_data(captured_buffer)
+                        data = gen_json(data)
                     if len(data) <= 0:
                         data = [[0, 0, 0]]
                     if len(to_predict_buffer) > buffer_length:
@@ -151,7 +166,8 @@ def fetch_data():
                                 'severity_rate': severity_percentage,
                                 'severity_state': severity_status,
                                 'status': 'Connected',
-                                'monitor': 'On'
+                                'monitor': 'On',
+                                'isDebugMode': isDebugMode
                             })
 
                         yield f"data:{json_data}\n\n"
@@ -170,7 +186,8 @@ def fetch_data():
                 status_count += 1
                 if status_count >= check_status_interval:
                     #print("SETTING STATUS TO FAILED!!!")
-                    database.child('Network-Connection').set("Failed")
+                    if not isDebugMode:
+                        database.child('Network-Connection').set("Failed")
                     status_count = 0
             else:
 
@@ -260,7 +277,7 @@ def predict_bytes(packets, anomalyBytes,m, arrayBytesInstances):
 
 if __name__ == '__main__':
 
-    app.run(debug=True)
+    app.run(debug=True,host='0.0.0.0')
     # application.run(debug=True, threaded=True)
     # application.run()
 
