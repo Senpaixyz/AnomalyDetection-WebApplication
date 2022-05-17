@@ -57,7 +57,7 @@ app = Flask(__name__)
 moderate_severity = SMS("Moderate", HIGH_SEVERITY_INTERVAL)
 high_severity = SMS("High", MODERATE_SEVERITY_INTERVAL)
 
-isDebugMode = True
+isDebugMode = False
 
 # run_with_ngrok(application) # for remote monitoringaa
 

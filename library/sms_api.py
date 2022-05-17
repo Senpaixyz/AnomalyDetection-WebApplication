@@ -7,7 +7,7 @@ SENDER_NAME = "SEMAPHORE"
 MOBILE_NO = "09380258562"
 MODERATE_SEVERITY_SMS = "Moderate Severity Message here"
 HIGH_SEVERITY_SMS = "High Severity Message here"
-SMS_DEBUG = "True"
+SMS_DEBUG = "False"
 
 
 
