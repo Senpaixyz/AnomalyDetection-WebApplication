@@ -57,7 +57,7 @@ app = Flask(__name__)
 moderate_severity = SMS("Moderate", HIGH_SEVERITY_INTERVAL)
 high_severity = SMS("High", MODERATE_SEVERITY_INTERVAL)
 
-isDebugMode = False
+isDebugMode = True
 
 # run_with_ngrok(application) # for remote monitoringaa
 
@@ -140,8 +140,8 @@ def fetch_data():
                                 anomalyBytes = 0
                                 arrayBytesInstances = 0
                                 threshold = 0
-                                #print("CURRENT PERCENTAGE: ", current_percentage)
-                                #print("SEVERITY: ", severity_lists)
+                                print("CURRENT PERCENTAGE: ", current_percentage)
+                                print("SEVERITY: ", severity_lists)
                             except ZeroDivisionError as e:
                                 print("Network Inactive...")
                                 anomalyBytes = 0
@@ -277,7 +277,7 @@ def predict_bytes(packets, anomalyBytes,m, arrayBytesInstances):
 
 if __name__ == '__main__':
 
-    app.run(debug=True,host='0.0.0.0')
+    app.run(debug=True)
     # application.run(debug=True, threaded=True)
     # application.run()
 

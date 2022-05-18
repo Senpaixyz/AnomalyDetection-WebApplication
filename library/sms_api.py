@@ -7,7 +7,7 @@ SENDER_NAME = "SEMAPHORE"
 MOBILE_NO = "09380258562"
 MODERATE_SEVERITY_SMS = "Moderate Severity Message here"
 HIGH_SEVERITY_SMS = "High Severity Message here"
-SMS_DEBUG = "False"
+SMS_DEBUG = "True"
 
 
 
@@ -47,7 +47,7 @@ class SMS(object):
         print('Sending Message...')
         message = HIGH_SEVERITY_SMS if self.severityType == "High" else MODERATE_SEVERITY_SMS
         deviceNo = MOBILE_NO
-        isSMS_DEBUG = eval(SMS_DEBUG)
+        isSMS_DEBUG = True#eval(SMS_DEBUG)
         if isSMS_DEBUG:
             print("Sms debugging is on...")
             print("-------SMS INFO--------")
