@@ -2,8 +2,7 @@
 
 [![Build Status](https://travis-ci.org/joemccann/dillinger.svg?branch=master)](https://travis-ci.org/joemccann/dillinger)
 
-
-
+![Anomaly Detection Severe](https://github.com/Senpaixyz/AnomalyDetection-WebApplication/blob/master/static/screenshots/AttackSimulation_Moment-severe.jpg?raw=true)
 
 ## Installation
 
@@ -42,7 +41,7 @@ http://127.0.0.1:5000/
 #### API Configuration
 Make sure you followed the PDF method for firebase configuration. However, you must wait 2-4 working days for Semaphore to offer you 10 SMS credits for trial. For testing purposes, I kept all of my API keys inside the Python file, but you are free to create .ENV files to secure your keys.
 
-| Firebase  | [Using Firebase for Anomaly Detection.pdf](https://nodejs.org/) |
+| Firebase  | [Using Firebase for Anomaly Detection.pdf](https://github.com/Senpaixyz/AnomalyDetection-WebApplication/tree/master/static/pdf) |
 | SMS API  | [Semaphore](https://semaphore.co/#user) |
 
 
