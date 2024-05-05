@@ -1,8 +1,6 @@
 # Network Traffic Anomaly Detection
 
-[![Build Status](https://travis-ci.org/joemccann/dillinger.svg?branch=master)](https://travis-ci.org/joemccann/dillinger)
-
-![Anomaly Detection Severe](https://github.com/Senpaixyz/AnomalyDetection-WebApplication/blob/master/static/screenshots/AttackSimulation_Moment-severe.jpg?raw=true)
+The study delves into analyzing network traffic behavior, identifying potential attacks, understanding their mechanisms, and evaluating their impact on target machines. Sample datasets were collected and analyzed using Wireshark tools to facilitate clustering. Following this, datasets were filtered using Jupyter Notebook and Anaconda Navigator to train algorithms like KNN and SVM for anomaly detection. The development phase involved creating a model with KNN and integrating it into a cloud-based web application, leveraging Firebase's SMS API and Semaphore for functionality. Subsequently, various Linux attacks such as UDP, Synflood, FindFlood, Reset Flood, LOIC, Push Ach, and Sinfin Flood were tested, showcasing commendable results in terms of the model's effectiveness in detecting and mitigating these assaults.
 
 ## Installation
 
